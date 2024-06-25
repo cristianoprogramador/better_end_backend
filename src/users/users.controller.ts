@@ -1,18 +1,18 @@
 import { Controller, Get, Post, Body } from "@nestjs/common";
-import { UserService } from "./user.service";
+import { UsersService } from "./users.service";
 import { Prisma as PrismaPostgresql } from "../../prisma-client-postgresql";
 
-@Controller("user")
-export class UserController {
-  constructor(private readonly userService: UserService) {}
+@Controller("users")
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
 
   @Post()
   async create(@Body() data: PrismaPostgresql.UserCreateInput) {
-    return this.userService.create(data);
+    return this.usersService.create(data);
   }
 
   @Get()
   async findAll() {
-    return this.userService.findAll();
+    return this.usersService.findAll();
   }
 }

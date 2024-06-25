@@ -1,8 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// prisma-postgresql\schema.prisma
 
 datasource db {
   provider = "postgresql"
@@ -22,6 +18,7 @@ enum UserType {
 model User {
   uuid      String    @id @default(uuid()) @db.Uuid
   email     String    @unique @db.VarChar(255)
+  name      String    @db.VarChar(255)
   password  String    @db.Text
   type      UserType
   disabled  Boolean   @default(false) @db.Boolean

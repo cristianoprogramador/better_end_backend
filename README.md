@@ -32,6 +32,9 @@
 $ npm install
 ```
 
+npx prisma generate --schema=prisma-postgresql/schema.prisma
+npx prisma generate --schema=prisma-mongodb/schema.prisma
+
 ## Running the app
 
 ```bash
