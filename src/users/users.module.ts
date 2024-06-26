@@ -8,5 +8,6 @@ import { PrismaModuleMongodb } from "../prisma-mongodb/prisma.module";
   imports: [PrismaModulePostgresql, PrismaModuleMongodb],
   providers: [UsersService],
   controllers: [UsersController],
+  exports: [UsersService],
 })
 export class UsersModule {}

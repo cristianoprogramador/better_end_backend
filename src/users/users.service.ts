@@ -1,21 +1,29 @@
+// src\users\users.service.ts
+
 import { HttpException, HttpStatus, Injectable, Logger } from "@nestjs/common";
 import { PrismaServicePostgresql } from "../prisma-postgresql/prisma.service";
-import { PrismaServiceMongodb } from "../prisma-mongodb/prisma.service";
-import { Prisma as PrismaPostgresql } from "../../prisma-client-postgresql";
 import * as bcrypt from "bcrypt";
+import { CreateUserDto } from "./dto/create-user.dto";
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
-  constructor(
-    private prismaPostgresql: PrismaServicePostgresql,
-    private prismaMongodb: PrismaServiceMongodb
-  ) {}
+  constructor(private prismaPostgresql: PrismaServicePostgresql) {}
 
-  async create(data: PrismaPostgresql.UserCreateInput) {
-    const userInPostgresql = await this.prismaPostgresql.user.create({ data });
-    return { userInPostgresql };
+  async create(createUserDto: CreateUserDto) {
+    const cipherText = createUserDto.password
+      ? await this.encryptPassword(createUserDto.password)
+      : null;
+
+    const user = await this.prismaPostgresql.user.create({
+      data: {
+        ...createUserDto,
+        password: cipherText,
+      },
+    });
+
+    return user;
   }
 
   async findAll() {

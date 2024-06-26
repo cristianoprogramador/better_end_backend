@@ -1,4 +1,5 @@
 // src/auth/auth.service.ts
+
 import { HttpException, HttpStatus, Injectable, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { OAuth2Client } from "google-auth-library";
@@ -7,6 +8,8 @@ import axios from "axios";
 import { randomBytes } from "crypto";
 import { ConfigService } from "@nestjs/config";
 import { UsersService } from "src/users/users.service";
+import { CreateUserDto } from "src/users/dto/create-user.dto";
+import { UserType } from "prisma-client-postgresql";
 
 @Injectable()
 export class AuthService {
@@ -40,13 +43,15 @@ export class AuthService {
       const hashedPassword =
         await this.usersService.encryptPassword(randomPassword);
 
-      user = await this.usersService.create({
+      const createUserDto: CreateUserDto = {
         name: payload.given_name || "",
         email: payload.email,
         password: hashedPassword,
         profileImageUrl: payload.picture,
-        type: "client",
-      });
+        type: UserType.client,
+      };
+
+      user = await this.usersService.create(createUserDto);
     }
 
     const accessToken = this.jwtService.sign({
@@ -58,6 +63,8 @@ export class AuthService {
       userData: {
         uuid: user.uuid,
         email: user.email,
+        name: user.name,
+        profileImageUrl: user.profileImageUrl,
         type: user.type,
       },
     };
