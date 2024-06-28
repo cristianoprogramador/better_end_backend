@@ -58,3 +58,4 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # Ignore Prisma Client directories
 prisma-client-postgresql/
 prisma-client-mongodb/
+/data

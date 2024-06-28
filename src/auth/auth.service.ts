@@ -84,6 +84,8 @@ export class AuthService {
       return {
         uuid: user.uuid,
         email: user.email,
+        name: user.name,
+        profileImageUrl: user.profileImageUrl,
         type: user.type,
       };
     } catch (error) {

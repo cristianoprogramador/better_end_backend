@@ -39,7 +39,7 @@ export class UsersService {
       this.logger.warn(`No user found for UUID: ${uuid}`);
       throw new HttpException("User not found", HttpStatus.NOT_FOUND);
     }
-    this.logger.log(`User found for UUID: ${uuid}`);
+    // this.logger.log(`User found for UUID: ${uuid}`);
     return user;
   }
 
@@ -53,7 +53,7 @@ export class UsersService {
       return null;
     }
 
-    this.logger.log(`User found for email: ${email}`);
+    // this.logger.log(`User found for email: ${email}`);
     return user;
   }
 

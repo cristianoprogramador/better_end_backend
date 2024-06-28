@@ -16,16 +16,83 @@ enum UserType {
 }
 
 model User {
-  uuid            String  @id @default(uuid()) @db.Uuid
-  email           String  @unique @db.VarChar(255)
-  name            String  @db.VarChar(255)
-  profileImageUrl String? @db.Text()
-  password        String  @db.Text
-  type      UserType
-  disabled  Boolean   @default(false) @db.Boolean
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  uuid            String    @id @default(uuid()) @db.Uuid
+  email           String    @unique @db.VarChar(255)
+  name            String    @db.VarChar(255)
+  profileImageUrl String?   @db.Text()
+  password        String    @db.Text
+  type            UserType
+  disabled        Boolean   @default(false) @db.Boolean
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
 
   @@map("users")
+}
+
+model Customer {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(255)
+  email     String   @unique @db.VarChar(255)
+  phone     String   @db.VarChar(50)
+  address   String   @db.VarChar(255)
+  city      String   @db.VarChar(100)
+  state     String   @db.VarChar(50)
+  zipCode   String   @db.VarChar(20)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+
+  @@map("customers")
+}
+
+model Product {
+  id         String      @id @default(uuid()) @db.Uuid
+  name       String      @db.VarChar(255)
+  category   Category    @relation(fields: [categoryId], references: [id])
+  categoryId String      @db.Uuid
+  price      Float
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  orderItems OrderItem[]
+
+  @@map("products")
+}
+
+model Category {
+  id       String    @id @default(uuid()) @db.Uuid
+  name     String    @db.VarChar(255)
+  products Product[]
+
+  @@map("categories")
+}
+
+model Order {
+  id              String      @id @default(uuid()) @db.Uuid
+  orderDate       DateTime
+  customer        Customer    @relation(fields: [customerId], references: [id])
+  customerId      String      @db.Uuid
+  items           OrderItem[]
+  shippingCost    Float
+  totalOrderValue Float
+  status          String      @db.VarChar(50)
+  paymentMethod   String      @db.VarChar(50)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  order      Order    @relation(fields: [orderId], references: [id])
+  orderId    String   @db.Uuid
+  product    Product  @relation(fields: [productId], references: [id])
+  productId  String   @db.Uuid
+  quantity   Int
+  totalPrice Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("order_items")
 }

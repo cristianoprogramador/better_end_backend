@@ -20,7 +20,7 @@ enum UserType {
 }
 
 model User {
-  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  id        String    @id @default(uuid()) @map("_id")
   uuid      String    @unique @default(uuid())
   email     String    @unique
   password  String
@@ -29,4 +29,53 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+}
+
+model Customer {
+  id        String   @id @default(uuid()) @map("_id")
+  name      String
+  email     String   @unique
+  phone     String
+  address   String
+  city      String
+  state     String
+  zipCode   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id         String   @id @default(uuid()) @map("_id")
+  name       String
+  categoryId String
+  price      Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Category {
+  id   String @id @default(uuid()) @map("_id")
+  name String
+}
+
+model Order {
+  id              String   @id @default(uuid()) @map("_id")
+  orderDate       DateTime
+  customerId      String
+  shippingCost    Float
+  totalOrderValue Float
+  status          String
+  paymentMethod   String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model OrderItem {
+  id         String   @id @default(uuid()) @map("_id")
+  orderId    String
+  productId  String
+  quantity   Int
+  totalPrice Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
