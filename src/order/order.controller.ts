@@ -22,6 +22,32 @@ export class OrderController {
     return { message: "Orders imported successfully" };
   }
 
+  @Post("importPostgreSQL")
+  async importOrdersPostgreSQL() {
+    const excelFilePath = path.join(
+      __dirname,
+      "..",
+      "mock",
+      "orders_data.xlsx"
+    );
+    const data: OrderData[] = readExcel(excelFilePath);
+    await this.orderService.importOrdersPostgreSQL(data);
+    return { message: "Orders imported successfully" };
+  }
+
+  @Post("importOrdersMongoDB")
+  async importOrdersMongoDB() {
+    const excelFilePath = path.join(
+      __dirname,
+      "..",
+      "mock",
+      "orders_data.xlsx"
+    );
+    const data: OrderData[] = readExcel(excelFilePath);
+    await this.orderService.importOrdersMongoDB(data);
+    return { message: "Orders imported successfully" };
+  }
+
   @Delete("delete")
   async deleteOrders() {
     await this.orderService.deleteAllOrders();
