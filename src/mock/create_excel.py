@@ -5,7 +5,7 @@ import random
 
 fake = Faker()
 
-num_records = 1000
+num_records = 4000
 
 # Listas pré-definidas de produtos e categorias de supermercado
 products = [

@@ -5,8 +5,10 @@ import { PrismaServicePostgresql } from "../prisma-postgresql/prisma.service";
 import { OrderService } from "./order.service";
 import { OrderController } from "./order.controller";
 import { PrismaServiceMongodb } from "src/prisma-mongodb/prisma.service";
+import { DatabaseModule } from "src/database.module";
 
 @Module({
+  imports: [DatabaseModule],
   controllers: [OrderController],
   providers: [OrderService, PrismaServicePostgresql, PrismaServiceMongodb],
   exports: [OrderService],

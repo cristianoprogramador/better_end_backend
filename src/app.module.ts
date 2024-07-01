@@ -6,6 +6,8 @@ import { PrismaModuleMongodb } from "./prisma-mongodb/prisma.module";
 import { UsersModule } from "./users/users.module";
 import { AuthModule } from "./auth/auth.module";
 import { OrderModule } from "./order/order.module";
+import { databaseProviders } from "./database.providers";
+import { DatabaseModule } from "./database.module";
 
 @Module({
   imports: [
@@ -14,8 +16,10 @@ import { OrderModule } from "./order/order.module";
     UsersModule,
     AuthModule,
     OrderModule,
+    DatabaseModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [...databaseProviders, AppService],
+  exports: [...databaseProviders],
 })
 export class AppModule {}

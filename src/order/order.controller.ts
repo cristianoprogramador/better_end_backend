@@ -18,7 +18,8 @@ export class OrderController {
       "orders_data.xlsx"
     );
     const data: OrderData[] = readExcel(excelFilePath);
-    await this.orderService.importOrders(data);
+    await this.orderService.importOrdersPostgreSQL(data);
+    await this.orderService.importOrdersMongoDB(data);
     return { message: "Orders imported successfully" };
   }
 
