@@ -24,7 +24,8 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+This repository is a starter project for building efficient and scalable server-side applications using the Nest framework, TypeScript, and Prisma with MongoDB and PostgreSQL.
+
 
 ## Installation
 
@@ -32,10 +33,18 @@
 $ npm install
 ```
 
-npx prisma generate --schema=prisma-postgresql/schema.prisma
 
+## Generate Prisma Clients
+
+```bash
+# For PostgreSQL
+npx prisma generate --schema=prisma-postgresql/schema.prisma
+npx prisma db push --schema=prisma-postgresql/schema.prisma
+
+# For MongoDB
 npx prisma generate --schema=prisma-mongodb/schema.prisma
 npx prisma db push --schema=prisma-mongodb/schema.prisma
+```
 
 ## Running the app
 

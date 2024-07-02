@@ -9,15 +9,19 @@ import { OrderData, readExcel } from "src/utils/excelUtils";
 export class OrderController {
   constructor(private orderService: OrderService) {}
 
-  @Post("import")
-  async importOrders() {
+  private readOrdersData(): OrderData[] {
     const excelFilePath = path.join(
       __dirname,
       "..",
       "mock",
       "orders_data.xlsx"
     );
-    const data: OrderData[] = readExcel(excelFilePath);
+    return readExcel(excelFilePath);
+  }
+
+  @Post("import")
+  async importOrders() {
+    const data = this.readOrdersData();
     await this.orderService.importOrdersPostgreSQL(data);
     await this.orderService.importOrdersMongoDB(data);
     return { message: "Orders imported successfully" };
@@ -25,26 +29,14 @@ export class OrderController {
 
   @Post("importPostgreSQL")
   async importOrdersPostgreSQL() {
-    const excelFilePath = path.join(
-      __dirname,
-      "..",
-      "mock",
-      "orders_data.xlsx"
-    );
-    const data: OrderData[] = readExcel(excelFilePath);
+    const data = this.readOrdersData();
     await this.orderService.importOrdersPostgreSQL(data);
     return { message: "Orders imported successfully" };
   }
 
-  @Post("importOrdersMongoDB")
+  @Post("importMongoDB")
   async importOrdersMongoDB() {
-    const excelFilePath = path.join(
-      __dirname,
-      "..",
-      "mock",
-      "orders_data.xlsx"
-    );
-    const data: OrderData[] = readExcel(excelFilePath);
+    const data = this.readOrdersData();
     await this.orderService.importOrdersMongoDB(data);
     return { message: "Orders imported successfully" };
   }

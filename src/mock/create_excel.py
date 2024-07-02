@@ -5,7 +5,7 @@ import random
 
 fake = Faker()
 
-num_records = 600  # Menor número de pedidos, mas cada pedido com múltiplos itens
+num_records = 1000  # Menor número de pedidos, mas cada pedido com múltiplos itens
 
 # Pre-defined lists of supermarket products and categories
 products = [
