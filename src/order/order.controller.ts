@@ -70,7 +70,7 @@ export class OrderController {
   @ApiOperation({
     summary: "Get complex orders from PostgreSQL",
     description:
-      "Retrieve orders that include products from the 'Fruits' category with a price greater than 15, and where the order status is 'Shipped'. This query demonstrates the performance of PostgreSQL with complex filters involving multiple joins and conditions.",
+      "Retrieve orders that include products from the 'Fruits' category, and where the order status is 'Shipped'. This query demonstrates the performance of PostgreSQL with complex filters involving multiple joins and conditions.",
   })
   @ApiResponse({
     status: 200,
@@ -86,7 +86,7 @@ export class OrderController {
   @ApiOperation({
     summary: "Get complex orders from MongoDB",
     description:
-      "Retrieve orders that include products from the 'Fruits' category with a price greater than 15, and where the order status is 'Shipped'. This query demonstrates the performance of MongoDB with complex filters involving multiple lookups, unwinds, and match conditions.",
+      "Retrieve orders that include products from the 'Fruits' category, and where the order status is 'Shipped'. This query demonstrates the performance of MongoDB with complex filters involving multiple lookups, unwinds, and match conditions.",
   })
   @ApiResponse({
     status: 200,

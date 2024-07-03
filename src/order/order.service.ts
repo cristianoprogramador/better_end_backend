@@ -331,9 +331,6 @@ export class OrderService {
               category: {
                 name: "Fruits",
               },
-              price: {
-                gt: 15,
-              },
             },
           },
         },
@@ -355,8 +352,7 @@ export class OrderService {
     const filteredOrders = orders.map((order) => ({
       ...order,
       items: order.items.filter(
-        (item) =>
-          item.product.category.name === "Fruits" && item.product.price > 15
+        (item) => item.product.category.name === "Fruits"
       ),
     }));
 
@@ -371,97 +367,102 @@ export class OrderService {
   async getComplexOrdersMongoDB(): Promise<any> {
     const startTotalTime = performance.now();
 
-    const orders = await this.db
-      .collection("Order")
+    // Busca categorias 'Fruits'
+    const fruitCategory = await this.db
+      .collection("Category")
+      .findOne({ name: "Fruits" });
+    if (!fruitCategory) {
+      console.error("Category 'Fruits' not found");
+      return;
+    }
+
+    // Busca produtos da categoria 'Fruits'
+    const fruitProducts = await this.db
+      .collection("Product")
+      .find({ categoryId: fruitCategory.id })
+      .toArray();
+    const fruitProductIds = fruitProducts.map((product) => product.id);
+
+    // Busca itens de pedido com esses produtos e status 'Shipped'
+    const ordersWithFruits = await this.db
+      .collection("OrderItem")
       .aggregate([
+        { $match: { productId: { $in: fruitProductIds } } },
         {
-          $match: {
-            status: "Shipped",
+          $lookup: {
+            from: "Order",
+            localField: "orderId",
+            foreignField: "id",
+            as: "orderDetails",
+          },
+        },
+        { $unwind: "$orderDetails" },
+        { $match: { "orderDetails.status": "Shipped" } },
+        {
+          $lookup: {
+            from: "Product",
+            localField: "productId",
+            foreignField: "id",
+            as: "productDetails",
+          },
+        },
+        { $unwind: "$productDetails" },
+        {
+          $group: {
+            _id: "$orderId",
+            orderDetails: { $first: "$orderDetails" },
+            items: {
+              $push: {
+                productId: "$productId",
+                productName: "$productDetails.name",
+                category: {
+                  id: fruitCategory.id,
+                  name: fruitCategory.name,
+                },
+                price: "$productDetails.price",
+                quantity: "$quantity",
+                totalPrice: "$totalPrice",
+              },
+            },
           },
         },
         {
           $lookup: {
             from: "Customer",
-            localField: "customerId",
+            localField: "orderDetails.customerId",
             foreignField: "id",
-            as: "customer",
+            as: "customerDetails",
           },
         },
-        {
-          $unwind: "$customer",
-        },
-        {
-          $lookup: {
-            from: "OrderItem",
-            localField: "id",
-            foreignField: "orderId",
-            as: "items",
-          },
-        },
-        {
-          $unwind: "$items",
-        },
-        {
-          $lookup: {
-            from: "Product",
-            localField: "items.productId",
-            foreignField: "id",
-            as: "productDetails",
-          },
-        },
-        {
-          $unwind: "$productDetails",
-        },
-        {
-          $lookup: {
-            from: "Category",
-            localField: "productDetails.categoryId",
-            foreignField: "id",
-            as: "categoryDetails",
-          },
-        },
-        {
-          $unwind: "$categoryDetails",
-        },
-        {
-          $match: {
-            "categoryDetails.name": "Fruits",
-            "productDetails.price": { $gt: 15 },
-          },
-        },
-        {
-          $group: {
-            _id: "$id",
-            orderId: { $first: "$id" },
-            orderDate: { $first: "$orderDate" },
-            customer: { $first: "$customer" },
-            shippingCost: { $first: "$shippingCost" },
-            totalOrderValue: { $first: "$totalOrderValue" },
-            status: { $first: "$status" },
-            paymentMethod: { $first: "$paymentMethod" },
-            items: {
-              $push: {
-                productId: "$items.productId",
-                productName: "$productDetails.name",
-                category: {
-                  id: "$categoryDetails.id",
-                  name: "$categoryDetails.name",
-                },
-                price: "$productDetails.price",
-                quantity: "$items.quantity",
-                totalPrice: "$items.totalPrice",
-              },
-            },
-          },
-        },
+        { $unwind: "$customerDetails" },
       ])
       .toArray();
+
+    const formattedOrders = ordersWithFruits.map((order) => ({
+      orderId: order._id,
+      orderDate: order.orderDetails.orderDate,
+      customer: {
+        id: order.customerDetails.id,
+        name: order.customerDetails.name,
+        email: order.customerDetails.email,
+        phone: order.customerDetails.phone,
+        address: order.customerDetails.address,
+        city: order.customerDetails.city,
+        state: order.customerDetails.state,
+        zipCode: order.customerDetails.zipCode,
+      },
+      shippingCost: order.orderDetails.shippingCost,
+      totalOrderValue: order.orderDetails.totalOrderValue,
+      status: order.orderDetails.status,
+      paymentMethod: order.orderDetails.paymentMethod,
+      items: order.items,
+    }));
 
     const endTotalTime = performance.now();
     console.log(
       `Total processing time for MongoDB: ${((endTotalTime - startTotalTime) / 1000).toFixed(3)} s`
     );
 
-    return standardizeOrderOutput(orders);
+    return formattedOrders;
   }
 }

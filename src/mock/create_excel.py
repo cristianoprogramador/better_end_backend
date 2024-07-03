@@ -5,25 +5,25 @@ import random
 
 fake = Faker()
 
-num_records = 2500  # Fewer orders, but each order has multiple items
+num_records = 1000  # Fewer orders, but each order has multiple items
 
-# Pre-defined lists of supermarket products and categories
+# Pre-defined lists of supermarket products, categories, and fixed prices
 products = [
-    ("Apple", "Fruits"),
-    ("Banana", "Fruits"),
-    ("Carrot", "Vegetables"),
-    ("Tomato", "Vegetables"),
-    ("Chicken Breast", "Meat"),
-    ("Beef Steak", "Meat"),
-    ("Milk", "Dairy"),
-    ("Cheese", "Dairy"),
-    ("Bread", "Bakery"),
-    ("Cake", "Bakery")
+    ("Apple", "Fruits", 1.50),
+    ("Banana", "Fruits", 0.30),
+    ("Carrot", "Vegetables", 2.00),
+    ("Tomato", "Vegetables", 2.50),
+    ("Chicken Breast", "Meat", 8.00),
+    ("Beef Steak", "Meat", 12.00),
+    ("Milk", "Dairy", 3.50),
+    ("Cheese", "Dairy", 5.00),
+    ("Bread", "Bakery", 2.50),
+    ("Cake", "Bakery", 15.00)
 ]
 
 # Dictionaries for storing unique IDs
-product_ids = {name: str(uuid.uuid4()) for name, _ in products}
-category_ids = {category: str(uuid.uuid4()) for _, category in set(products)}
+product_ids = {name: str(uuid.uuid4()) for name, _, _ in products}
+category_ids = {category: str(uuid.uuid4()) for _, category in set((name, category) for name, category, _ in products)}
 
 # Set for storing unique emails
 used_emails = set()
@@ -54,18 +54,23 @@ for _ in range(num_records):
     num_products = random.randint(1, 5)  # Random number of products per order
     total_order_value = 0
     products_list = []
+    selected_products = set()  # Set to track products already selected for this order
 
-    for _ in range(num_products):
-        product_name, category_name = random.choice(products)
-        product_id = product_ids[product_name]
-        category_id = category_ids[category_name]
-        price = round(random.uniform(1.0, 100.0), 2)
-        quantity = random.randint(1, 10)
-        total_product_price = round(price * quantity, 2)
-        total_order_value += total_product_price
+    while len(selected_products) < num_products:
+        product_choice = random.choice(products)
+        product_name = product_choice[0]
 
-        # Collect individual product info
-        products_list.append([product_id, product_name, category_id, category_name, price, quantity, total_product_price])
+        if product_name not in selected_products:
+            selected_products.add(product_name)
+            category_name, price = product_choice[1], product_choice[2]
+            product_id = product_ids[product_name]
+            category_id = category_ids[category_name]
+            quantity = random.randint(1, 10)
+            total_product_price = round(price * quantity, 2)
+            total_order_value += total_product_price
+
+            # Collect individual product info
+            products_list.append([product_id, product_name, category_id, category_name, price, quantity, total_product_price])
 
     shipping_cost = round(random.uniform(5.0, 20.0), 2)
     total_order_value += shipping_cost
@@ -78,7 +83,7 @@ for _ in range(num_records):
             order_status, payment_method, shipping_cost, total_order_value
         ])
 
-columns=["OrderID", "OrderDate", "CustomerID", "CustomerName", "Email", "PhoneNumber", "Address", "City", "State", "ZipCode", "ProductID", "ProductName", "CategoryID", "CategoryName", "Price", "Quantity", "TotalProductPrice", "OrderStatus", "PaymentMethod", "ShippingCost", "TotalOrderValue"]
+columns = ["OrderID", "OrderDate", "CustomerID", "CustomerName", "Email", "PhoneNumber", "Address", "City", "State", "ZipCode", "ProductID", "ProductName", "CategoryID", "CategoryName", "Price", "Quantity", "TotalProductPrice", "OrderStatus", "PaymentMethod", "ShippingCost", "TotalOrderValue"]
 df = pd.DataFrame(data, columns=columns)
 
 df.to_excel("orders_data.xlsx", index=False)
