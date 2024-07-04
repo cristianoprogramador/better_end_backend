@@ -79,7 +79,7 @@ export class OrderService {
       if (!orders.has(row.OrderID)) {
         orders.set(row.OrderID, {
           id: row.OrderID,
-          orderDate: new Date(row.OrderDate),
+          orderDate: row.OrderDate,
           customerId: row.CustomerID,
           shippingCost: row.ShippingCost,
           totalOrderValue: row.TotalOrderValue,
@@ -189,7 +189,7 @@ export class OrderService {
               update: {
                 $set: {
                   id: row.OrderID,
-                  orderDate: new Date(row.OrderDate),
+                  orderDate: row.OrderDate,
                   customerId: row.CustomerID,
                   shippingCost: row.ShippingCost,
                   totalOrderValue: row.TotalOrderValue,
@@ -522,5 +522,132 @@ export class OrderService {
     );
 
     return formattedOrders;
+  }
+
+  async updateOrdersStatusPostgreSQL(): Promise<void> {
+    const startTotalTime = performance.now();
+
+    // Atualizar status das ordens
+    await this.prismaPostgresql.order.updateMany({
+      where: {
+        status: "Pending",
+        orderDate: {
+          gte: new Date("2023-06-01"),
+          lte: new Date("2023-07-31"),
+        },
+        totalOrderValue: {
+          gte: 100,
+        },
+      },
+      data: {
+        status: "Updated",
+        updatedAt: new Date(),
+      },
+    });
+
+    // Encontrar os clientes relacionados
+    const affectedOrders = await this.prismaPostgresql.order.findMany({
+      where: {
+        status: "Updated",
+        orderDate: {
+          gte: new Date("2023-06-01"),
+          lte: new Date("2023-07-31"),
+        },
+        totalOrderValue: {
+          gte: 100,
+        },
+      },
+      select: {
+        customerId: true,
+      },
+    });
+
+    const customerIds = affectedOrders.map((order) => order.customerId);
+
+    // Atualizar o endereço dos clientes relacionados
+    await this.prismaPostgresql.customer.updateMany({
+      where: {
+        id: {
+          in: customerIds,
+        },
+      },
+      data: {
+        address: "123 Updated St",
+        city: "Updated City",
+        state: "Updated State",
+        zipCode: "00000",
+      },
+    });
+
+    const endTotalTime = performance.now();
+    console.log(
+      `Total processing time for PostgreSQL: ${((endTotalTime - startTotalTime) / 1000).toFixed(3)} s`
+    );
+  }
+
+  async updateOrdersStatusMongoDB(): Promise<void> {
+    const startTotalTime = performance.now();
+
+    // Atualizar status das ordens
+    await this.db.collection("Order").updateMany(
+      {
+        status: "Pending",
+        orderDate: {
+          $gte: new Date("2023-06-01"),
+          $lte: new Date("2023-07-31"),
+        },
+        totalOrderValue: {
+          $gte: 100,
+        },
+      },
+      {
+        $set: {
+          status: "Updated",
+          updatedAt: new Date(),
+        },
+      }
+    );
+
+    // Encontrar os clientes afetados
+    const affectedOrders = await this.db
+      .collection("Order")
+      .find(
+        {
+          status: "Updated",
+          orderDate: {
+            $gte: new Date("2023-06-01"),
+            $lte: new Date("2023-07-31"),
+          },
+          totalOrderValue: {
+            $gte: 100,
+          },
+        },
+        { projection: { customerId: 1 } }
+      )
+      .toArray();
+
+    const customerIds = affectedOrders.map((order) => order.customerId);
+
+    // Atualizar o endereço dos clientes relacionados
+    await this.db.collection("Customer").updateMany(
+      {
+        id: {
+          $in: customerIds,
+        },
+      },
+      {
+        $set: {
+          address: "123 Updated St",
+          city: "Updated City",
+          state: "Updated State",
+          zipCode: "00000",
+        },
+      }
+    );
+
+    const endTotalTime = performance.now();
+    console.log(
+      `Total processing time for MongoDB: ${((endTotalTime - startTotalTime) / 1000).toFixed(3)} s`
+    );
   }
 }

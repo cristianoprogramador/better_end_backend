@@ -1,6 +1,6 @@
 // src\order\order.controller.ts
 
-import { Controller, Post, Delete, Get } from "@nestjs/common";
+import { Controller, Post, Delete, Get, Put } from "@nestjs/common";
 import { OrderService } from "./order.service";
 import * as path from "path";
 import { OrderData, readExcel } from "src/utils/excelUtils";
@@ -99,6 +99,16 @@ export class OrderController {
   }
 
   @Get("/sizes")
+  @ApiOperation({
+    summary: "Get database sizes",
+    description:
+      "Retrieve the size of the databases in PostgreSQL and MongoDB.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Database sizes fetched successfully.",
+  })
+  @ApiResponse({ status: 500, description: "Internal server error." })
   async getDatabaseSizes() {
     const postgresStats = await this.orderService.getPostgresDatabaseSize();
     const mongoStats = await this.orderService.getMongoDatabaseSize();
@@ -106,5 +116,37 @@ export class OrderController {
       postgres: postgresStats,
       mongo: mongoStats,
     };
+  }
+
+  @Put("updateStatusPostgreSQL")
+  @ApiOperation({
+    summary: "Update order statuses in PostgreSQL",
+    description:
+      "Update the status of all orders from 'Pending' to 'Updated' for the months of June and July in PostgreSQL, and also update the related customer's address.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Order statuses updated successfully in PostgreSQL.",
+  })
+  @ApiResponse({ status: 500, description: "Internal server error." })
+  async updateOrdersStatusPostgreSQL() {
+    await this.orderService.updateOrdersStatusPostgreSQL();
+    return { message: "Order statuses updated successfully in PostgreSQL" };
+  }
+
+  @Put("updateStatusMongoDB")
+  @ApiOperation({
+    summary: "Update order statuses in MongoDB",
+    description:
+      "Update the status of all orders from 'Pending' to 'Updated' for the months of June and July in MongoDB, and also update the related customer's address.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Order statuses updated successfully in MongoDB.",
+  })
+  @ApiResponse({ status: 500, description: "Internal server error." })
+  async updateOrdersStatusMongoDB() {
+    await this.orderService.updateOrdersStatusMongoDB();
+    return { message: "Order statuses updated successfully in MongoDB" };
   }
 }

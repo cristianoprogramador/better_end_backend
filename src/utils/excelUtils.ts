@@ -24,11 +24,41 @@ interface OrderData {
   PaymentMethod: string;
 }
 
+function excelDateToJSDate(excelDate: number): Date {
+  const date = new Date((excelDate - (25567 + 1)) * 86400 * 1000);
+  return date;
+}
+
 function readExcel(filePath: string): OrderData[] {
   const workbook = xlsx.readFile(filePath);
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
-  const data: OrderData[] = xlsx.utils.sheet_to_json(sheet);
+  const jsonData: any[] = xlsx.utils.sheet_to_json(sheet);
+
+  const data: OrderData[] = jsonData.map((row) => ({
+    OrderID: row["OrderID"],
+    OrderDate: excelDateToJSDate(row["OrderDate"]),
+    CustomerID: row["CustomerID"],
+    CustomerName: row["CustomerName"],
+    Email: row["Email"],
+    PhoneNumber: row["PhoneNumber"],
+    Address: row["Address"],
+    City: row["City"],
+    State: row["State"],
+    ZipCode: row["ZipCode"],
+    ProductID: row["ProductID"],
+    ProductName: row["ProductName"],
+    CategoryID: row["CategoryID"],
+    CategoryName: row["CategoryName"],
+    Price: row["Price"],
+    Quantity: row["Quantity"],
+    TotalProductPrice: row["TotalProductPrice"],
+    ShippingCost: row["ShippingCost"],
+    TotalOrderValue: row["TotalOrderValue"],
+    OrderStatus: row["OrderStatus"],
+    PaymentMethod: row["PaymentMethod"],
+  }));
+
   return data;
 }
 
