@@ -97,4 +97,14 @@ export class OrderController {
     const orders = await this.orderService.getComplexOrdersMongoDB();
     return orders;
   }
+
+  @Get("/sizes")
+  async getDatabaseSizes() {
+    const postgresStats = await this.orderService.getPostgresDatabaseSize();
+    const mongoStats = await this.orderService.getMongoDatabaseSize();
+    return {
+      postgres: postgresStats,
+      mongo: mongoStats,
+    };
+  }
 }

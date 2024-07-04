@@ -5,6 +5,13 @@ import { performance } from "perf_hooks";
 import { Db } from "mongodb";
 import { v4 as uuidv4 } from "uuid";
 import { standardizeOrderOutput } from "src/utils/orderOutput";
+import { formatBytes } from "src/utils/formatBytes";
+
+interface TableSize {
+  table_name: string;
+  size: string;
+  size_bytes: bigint;
+}
 
 @Injectable()
 export class OrderService {
@@ -22,28 +29,32 @@ export class OrderService {
       id: row.CategoryID,
       name: row.CategoryName,
     }));
-
     await this.prismaPostgresql.category.createMany({
       data: categories,
       skipDuplicates: true,
     });
 
-    // Insert Customers in Bulk
-    const customers = data.map((row) => ({
-      id: row.CustomerID,
-      name: row.CustomerName,
-      email: row.Email,
-      phone: row.PhoneNumber,
-      address: row.Address,
-      city: row.City,
-      state: row.State,
-      zipCode: row.ZipCode,
-      createdAt: new Date(row.OrderDate),
-      updatedAt: new Date(row.OrderDate),
-    }));
-
+    // Process customers uniquely before bulk insertion
+    const customerMap = new Map();
+    data.forEach((row) => {
+      if (!customerMap.has(row.CustomerID)) {
+        customerMap.set(row.CustomerID, {
+          id: row.CustomerID,
+          name: row.CustomerName,
+          email: row.Email,
+          phone: row.PhoneNumber,
+          address: row.Address,
+          city: row.City,
+          state: row.State,
+          zipCode: row.ZipCode,
+          createdAt: new Date(row.OrderDate),
+          updatedAt: new Date(row.OrderDate),
+        });
+      }
+    });
+    const uniqueCustomers = Array.from(customerMap.values());
     await this.prismaPostgresql.customer.createMany({
-      data: customers,
+      data: uniqueCustomers,
       skipDuplicates: true,
     });
 
@@ -56,7 +67,6 @@ export class OrderService {
       createdAt: new Date(row.OrderDate),
       updatedAt: new Date(row.OrderDate),
     }));
-
     await this.prismaPostgresql.product.createMany({
       data: products,
       skipDuplicates: true,
@@ -65,7 +75,6 @@ export class OrderService {
     // Prepare Orders and Order Items for Bulk Insertion
     const orders = new Map();
     const orderItems = [];
-
     data.forEach((row) => {
       if (!orders.has(row.OrderID)) {
         orders.set(row.OrderID, {
@@ -78,7 +87,6 @@ export class OrderService {
           paymentMethod: row.PaymentMethod,
         });
       }
-
       orderItems.push({
         id: uuidv4(),
         orderId: row.OrderID,
@@ -89,14 +97,10 @@ export class OrderService {
         updatedAt: new Date(row.OrderDate),
       });
     });
-
-    // Insert Orders in Bulk
     await this.prismaPostgresql.order.createMany({
       data: Array.from(orders.values()),
       skipDuplicates: true,
     });
-
-    // Insert Order Items in Bulk
     await this.prismaPostgresql.orderItem.createMany({
       data: orderItems,
       skipDuplicates: true,
@@ -123,7 +127,7 @@ export class OrderService {
       const allOrders = new Map();
       const allOrderItems = new Map();
 
-      const batchSize = 5000; // Batch size for bulk operations
+      const batchSize = 2500; // Batch size for bulk operations
 
       data.forEach((row) => {
         // Categories
@@ -140,23 +144,19 @@ export class OrderService {
         // Customers
         if (!allCustomers.has(row.CustomerID)) {
           allCustomers.set(row.CustomerID, {
-            updateOne: {
-              filter: { id: row.CustomerID },
-              update: {
-                $set: {
-                  id: row.CustomerID,
-                  name: row.CustomerName,
-                  email: row.Email,
-                  phone: row.PhoneNumber,
-                  address: row.Address,
-                  city: row.City,
-                  state: row.State,
-                  zipCode: row.ZipCode,
-                  createdAt: new Date(row.OrderDate),
-                  updatedAt: new Date(row.OrderDate),
-                },
+            insertOne: {
+              document: {
+                id: row.CustomerID,
+                name: row.CustomerName,
+                email: row.Email,
+                phone: row.PhoneNumber,
+                address: row.Address,
+                city: row.City,
+                state: row.State,
+                zipCode: row.ZipCode,
+                createdAt: new Date(row.OrderDate),
+                updatedAt: new Date(row.OrderDate),
               },
-              upsert: true,
             },
           });
         }
@@ -317,6 +317,64 @@ export class OrderService {
       console.error("Error deleting all orders:", error);
       throw error;
     }
+  }
+
+  async getPostgresDatabaseSize(): Promise<any> {
+    const sizes = await this.prismaPostgresql.$queryRaw<TableSize[]>`
+        SELECT
+            table_name,
+            pg_size_pretty(pg_total_relation_size(table_name::regclass)) AS size,
+            pg_total_relation_size(table_name::regclass) as size_bytes
+        FROM
+            information_schema.tables
+        WHERE
+            table_schema='public'
+            AND table_name IN ('orders', 'order_items', 'products', 'customers', 'categories');
+    `;
+
+    const totalSize = sizes.reduce(
+      (acc, curr) => BigInt(acc) + BigInt(curr.size_bytes),
+      BigInt(0)
+    );
+    const totalSizePretty = formatBytes(Number(totalSize));
+
+    return {
+      details: sizes.map((size) => ({
+        table: size.table_name,
+        size: size.size,
+      })),
+      totalSize: totalSizePretty,
+    };
+  }
+
+  async getMongoDatabaseSize(): Promise<any> {
+    const collections = [
+      "Customer",
+      "Product",
+      "Category",
+      "Order",
+      "OrderItem",
+    ];
+    let totalSize = 0;
+    const sizes = [];
+
+    for (const collection of collections) {
+      const stats = await this.db.command({
+        collStats: collection,
+      });
+      sizes.push({
+        collection,
+        size: formatBytes(stats.size),
+        count: stats.count,
+        averageObjectSize: formatBytes(stats.avgObjSize),
+      });
+      totalSize += stats.size;
+    }
+
+    return {
+      details: sizes,
+      totalSize: formatBytes(totalSize),
+    };
   }
 
   async getComplexOrdersPostgreSQL(): Promise<any> {
