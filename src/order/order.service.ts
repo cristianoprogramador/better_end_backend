@@ -527,13 +527,13 @@ export class OrderService {
   async updateOrdersStatusPostgreSQL(): Promise<void> {
     const startTotalTime = performance.now();
 
-    // Atualizar status das ordens
+    // Update order status
     await this.prismaPostgresql.order.updateMany({
       where: {
         status: "Pending",
         orderDate: {
           gte: new Date("2023-06-01"),
-          lte: new Date("2023-07-31"),
+          lte: new Date("2024-07-31"),
         },
         totalOrderValue: {
           gte: 100,
@@ -545,41 +545,64 @@ export class OrderService {
       },
     });
 
-    // Encontrar os clientes relacionados
+    // Find related customers
     const affectedOrders = await this.prismaPostgresql.order.findMany({
       where: {
         status: "Updated",
         orderDate: {
           gte: new Date("2023-06-01"),
-          lte: new Date("2023-07-31"),
+          lte: new Date("2024-07-31"),
         },
         totalOrderValue: {
           gte: 100,
         },
       },
       select: {
+        id: true,
         customerId: true,
       },
     });
 
     const customerIds = affectedOrders.map((order) => order.customerId);
+    const orderIds = affectedOrders.map((order) => order.id);
 
-    // Atualizar o endereço dos clientes relacionados
-    await this.prismaPostgresql.customer.updateMany({
-      where: {
-        id: {
-          in: customerIds,
+    const updateOrderItemsResult =
+      await this.prismaPostgresql.orderItem.updateMany({
+        where: {
+          orderId: {
+            in: orderIds,
+          },
         },
-      },
-      data: {
-        address: "123 Updated St",
-        city: "Updated City",
-        state: "Updated State",
-        zipCode: "00000",
-      },
-    });
+        data: {
+          quantity: {
+            increment: 1,
+          },
+        },
+      });
+
+    // Update the address of related customers
+    const updateCustomerResult =
+      await this.prismaPostgresql.customer.updateMany({
+        where: {
+          id: {
+            in: customerIds,
+          },
+        },
+        data: {
+          address: "123 Updated St",
+          city: "Updated City",
+          state: "Updated State",
+          zipCode: "00000",
+        },
+      });
 
     const endTotalTime = performance.now();
+
+    console.log(
+      `Order items updated Postgresql: ${updateOrderItemsResult.count}`
+    );
+    console.log(`Customer updated Postgresql: ${updateCustomerResult.count}`);
+
     console.log(
       `Total processing time for PostgreSQL: ${((endTotalTime - startTotalTime) / 1000).toFixed(3)} s`
     );
@@ -588,13 +611,13 @@ export class OrderService {
   async updateOrdersStatusMongoDB(): Promise<void> {
     const startTotalTime = performance.now();
 
-    // Atualizar status das ordens
+    // Update order status
     await this.db.collection("Order").updateMany(
       {
         status: "Pending",
         orderDate: {
           $gte: new Date("2023-06-01"),
-          $lte: new Date("2023-07-31"),
+          $lte: new Date("2024-07-31"),
         },
         totalOrderValue: {
           $gte: 100,
@@ -608,7 +631,7 @@ export class OrderService {
       }
     );
 
-    // Encontrar os clientes afetados
+    // Find affected customers
     const affectedOrders = await this.db
       .collection("Order")
       .find(
@@ -616,38 +639,178 @@ export class OrderService {
           status: "Updated",
           orderDate: {
             $gte: new Date("2023-06-01"),
-            $lte: new Date("2023-07-31"),
+            $lte: new Date("2024-07-31"),
           },
           totalOrderValue: {
             $gte: 100,
           },
         },
-        { projection: { customerId: 1 } }
+        { projection: { id: 1, customerId: 1 } }
       )
       .toArray();
 
     const customerIds = affectedOrders.map((order) => order.customerId);
+    const orderIds = affectedOrders.map((order) => order.id);
 
-    // Atualizar o endereço dos clientes relacionados
-    await this.db.collection("Customer").updateMany(
-      {
-        id: {
-          $in: customerIds,
+    const updateOrderItemsResult = await this.db
+      .collection("OrderItem")
+      .updateMany(
+        {
+          orderId: {
+            $in: orderIds,
+          },
         },
-      },
-      {
-        $set: {
-          address: "123 Updated St",
-          city: "Updated City",
-          state: "Updated State",
-          zipCode: "00000",
+        {
+          $inc: {
+            quantity: 1,
+          },
+        }
+      );
+
+    // Update the address of related customers
+    const updateCustomerResult = await this.db
+      .collection("Customer")
+      .updateMany(
+        {
+          id: {
+            $in: customerIds,
+          },
         },
-      }
-    );
+        {
+          $set: {
+            address: "123 Updated St",
+            city: "Updated City",
+            state: "Updated State",
+            zipCode: "00000",
+          },
+        }
+      );
 
     const endTotalTime = performance.now();
+
+    console.log(
+      `Order items updated MongoDB: ${updateOrderItemsResult.modifiedCount}`
+    );
+    console.log(
+      `Customer updated MongoDB: ${updateCustomerResult.modifiedCount}`
+    );
+
     console.log(
       `Total processing time for MongoDB: ${((endTotalTime - startTotalTime) / 1000).toFixed(3)} s`
     );
+  }
+
+  async deleteOldOrdersPostgreSQL(): Promise<{
+    totalDeletedOrders: number;
+    totalOrderValueDeleted: number;
+  }> {
+    const startTotalTime = performance.now();
+
+    // Find old orders and their related data
+    const oldOrders = await this.prismaPostgresql.order.findMany({
+      where: {
+        orderDate: {
+          lte: new Date("2022-12-31"),
+        },
+      },
+      select: {
+        id: true,
+        totalOrderValue: true,
+      },
+    });
+
+    const orderIds = oldOrders.map((order) => order.id);
+
+    // Calculate the total value of the orders to be deleted
+    const totalOrderValue = oldOrders.reduce(
+      (sum, order) => sum + order.totalOrderValue,
+      0
+    );
+
+    // Delete order items related to these orders
+    await this.prismaPostgresql.orderItem.deleteMany({
+      where: {
+        orderId: {
+          in: orderIds,
+        },
+      },
+    });
+
+    // Delete the orders themselves
+    await this.prismaPostgresql.order.deleteMany({
+      where: {
+        id: {
+          in: orderIds,
+        },
+      },
+    });
+
+    const endTotalTime = performance.now();
+    console.log(
+      `Total processing time for PostgreSQL: ${(
+        (endTotalTime - startTotalTime) /
+        1000
+      ).toFixed(3)} s`
+    );
+
+    return {
+      totalDeletedOrders: orderIds.length,
+      totalOrderValueDeleted: totalOrderValue,
+    };
+  }
+
+  async deleteOldOrdersMongoDB(): Promise<{
+    totalDeletedOrders: number;
+    totalOrderValueDeleted: number;
+  }> {
+    const startTotalTime = performance.now();
+
+    // Find old orders and their related data
+    const oldOrders = await this.db
+      .collection("Order")
+      .find(
+        {
+          orderDate: {
+            $lte: new Date("2022-12-31"),
+          },
+        },
+        { projection: { _id: 1, totalOrderValue: 1 } }
+      )
+      .toArray();
+
+    const orderIds = oldOrders.map((order) => order._id);
+
+    // Calculate the total value of the orders to be deleted
+    const totalOrderValue = oldOrders.reduce(
+      (sum, order) => sum + order.totalOrderValue,
+      0
+    );
+
+    // Delete order items related to these orders
+    await this.db.collection("OrderItem").deleteMany({
+      orderId: {
+        $in: orderIds,
+      },
+    });
+
+    // Delete the orders themselves
+    await this.db.collection("Order").deleteMany({
+      _id: {
+        $in: orderIds,
+      },
+    });
+
+    const endTotalTime = performance.now();
+    console.log(
+      `Total processing time for MongoDB: ${(
+        (endTotalTime - startTotalTime) /
+        1000
+      ).toFixed(3)} s`
+    );
+
+    return {
+      totalDeletedOrders: orderIds.length,
+      totalOrderValueDeleted: totalOrderValue,
+    };
   }
 }

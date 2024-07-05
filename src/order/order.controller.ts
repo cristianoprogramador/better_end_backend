@@ -149,4 +149,36 @@ export class OrderController {
     await this.orderService.updateOrdersStatusMongoDB();
     return { message: "Order statuses updated successfully in MongoDB" };
   }
+
+  @Delete("delete-old-orders-postgresql")
+  @ApiOperation({
+    summary: "Delete old orders from PostgreSQL",
+    description:
+      "Delete orders older than a certain date along with their order items.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Old orders deleted successfully from PostgreSQL.",
+  })
+  @ApiResponse({ status: 500, description: "Internal server error." })
+  async deleteOldOrdersPostgreSQL() {
+    const result = await this.orderService.deleteOldOrdersPostgreSQL();
+    return result;
+  }
+
+  @Delete("delete-old-orders-mongodb")
+  @ApiOperation({
+    summary: "Delete old orders from MongoDB",
+    description:
+      "Delete orders older than a certain date along with their order items.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Old orders deleted successfully from MongoDB.",
+  })
+  @ApiResponse({ status: 500, description: "Internal server error." })
+  async deleteOldOrdersMongoDB() {
+    const result = await this.orderService.deleteOldOrdersMongoDB();
+    return result;
+  }
 }
