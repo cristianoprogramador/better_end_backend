@@ -425,7 +425,7 @@ export class OrderService {
   async getComplexOrdersMongoDB(): Promise<any> {
     const startTotalTime = performance.now();
 
-    // Busca categorias 'Fruits'
+    // Search categories 'Fruits'
     const fruitCategory = await this.db
       .collection("Category")
       .findOne({ name: "Fruits" });
@@ -434,14 +434,14 @@ export class OrderService {
       return;
     }
 
-    // Busca produtos da categoria 'Fruits'
+    // Search for products from the 'Fruits' category
     const fruitProducts = await this.db
       .collection("Product")
       .find({ categoryId: fruitCategory.id })
       .toArray();
     const fruitProductIds = fruitProducts.map((product) => product.id);
 
-    // Busca itens de pedido com esses produtos e status 'Shipped'
+    // Search for order items with these products and 'Shipped' status
     const ordersWithFruits = await this.db
       .collection("OrderItem")
       .aggregate([
